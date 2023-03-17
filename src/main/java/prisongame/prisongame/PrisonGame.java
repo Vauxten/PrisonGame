@@ -616,7 +616,7 @@ public final class PrisonGame extends JavaPlugin {
 
         g.getInventory().addItem(new ItemStack(Material.CROSSBOW));
         g.getInventory().addItem(new ItemStack(Material.ARROW, 16));
-        g.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 32));
+        g.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 64));
 
         ItemStack card2 = new ItemStack(Material.IRON_SHOVEL);
         ItemMeta cardm2 = card2.getItemMeta();
