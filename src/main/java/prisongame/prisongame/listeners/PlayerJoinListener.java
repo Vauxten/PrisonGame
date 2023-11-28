@@ -8,14 +8,60 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import prisongame.prisongame.PrisonGame;
+import prisongame.prisongame.commands.danger.staff.SeasonCommand;
+import prisongame.prisongame.commands.staff.VanishCommand;
+import prisongame.prisongame.lib.Keys;
+
+import java.io.IOException;
 
 import static prisongame.prisongame.MyListener.playerJoin;
 
 public class PlayerJoinListener implements Listener {
     @EventHandler
+    public void onJoinSeason(PlayerJoinEvent event) {
+        var player = event.getPlayer();
+        var container = player.getPersistentDataContainer();
+
+        try {
+            var currentSeason = SeasonCommand.getCurrentSeason();
+            var playerSeason = container.getOrDefault(Keys.SEASON.key(), PersistentDataType.INTEGER, 0);
+            var money = container.getOrDefault(Keys.MONEY.key(), PersistentDataType.DOUBLE, 0.0);
+
+            if (currentSeason != playerSeason && money > 0) {
+                container.set(Keys.SEASON.key(), PersistentDataType.INTEGER, currentSeason);
+                container.set(Keys.PREVIOUS_MONEY.key(), PersistentDataType.DOUBLE, money);
+                container.set(Keys.MONEY.key(), PersistentDataType.DOUBLE, 0.0);
+                player.sendMessage(PrisonGame.mm.deserialize("\n<red>Your money has been reset due to the start of a new season!\n"));
+            }
+        } catch (IOException e) {
+            player.sendMessage(PrisonGame.mm.deserialize("<red>An error occurred checking the current season. Please let Goose know on Discord. (@lilhonks)"));
+            Bukkit.getConsoleSender().sendMessage(PrisonGame.mm.deserialize("<red>" + e.getMessage()));
+        }
+    }
+
+    @EventHandler
+    public void onJoinVanish(PlayerJoinEvent event) {
+        var player = event.getPlayer();
+        var container = player.getPersistentDataContainer();
+
+        for (var loopedPlayer : Bukkit.getOnlinePlayers()) {
+            var loopedContainer = loopedPlayer.getPersistentDataContainer();
+
+            if (container.has(VanishCommand.VANISHED))
+                loopedPlayer.hidePlayer(PrisonGame.instance, player);
+
+            if (loopedContainer.has(VanishCommand.VANISHED))
+                player.hidePlayer(PrisonGame.instance, loopedPlayer);
+        }
+
+    }
+
+    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+
         if (PrisonGame.wardenenabled) {
             Player p = event.getPlayer();
             PrisonGame.trustlevel.put(event.getPlayer(), 0);
@@ -51,7 +97,7 @@ public class PlayerJoinListener implements Listener {
             event.getPlayer().kickPlayer(ChatColor.translateAlternateColorCodes('&', "&4&lThe server is currently &a&lReloading &c&lOr &4Completely fucked up. &c&lIf this error is occuring constanly please alert me @ &bhttps://discord.gg/GrcHKkFQsv"));
         }
         Player pe = (Player) event.getPlayer();
-        if (PrisonGame.savedPlayerGuards.get(PrisonGame.warden.getUniqueId()).containsKey(pe.getUniqueId())) {
+        if (PrisonGame.warden != null && PrisonGame.savedPlayerGuards.get(PrisonGame.warden.getUniqueId()).containsKey(pe.getUniqueId())) {
             switch (PrisonGame.savedPlayerGuards.get(PrisonGame.warden.getUniqueId()).get(pe.getUniqueId())) {
                 case 2 -> PrisonGame.setNurse((Player) pe);
                 case 1 -> PrisonGame.setGuard((Player) pe);

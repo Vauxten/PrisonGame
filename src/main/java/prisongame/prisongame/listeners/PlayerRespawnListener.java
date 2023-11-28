@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import prisongame.prisongame.PrisonGame;
+import prisongame.prisongame.lib.Keys;
 import prisongame.prisongame.lib.Role;
 
 import java.util.Random;
@@ -69,7 +70,7 @@ public class PlayerRespawnListener implements Listener {
                 g.getInventory().setLeggings(orangeleg);
                 g.getInventory().setBoots(orangeboot);
 
-                if (g.getPersistentDataContainer().has(PrisonGame.hg, PersistentDataType.INTEGER)) {
+                if (g.getPersistentDataContainer().has(Keys.HEAD_GUARD.key(), PersistentDataType.INTEGER)) {
                     g.getInventory().setBoots(new ItemStack(Material.NETHERITE_BOOTS));
                 }
 
@@ -120,7 +121,7 @@ public class PlayerRespawnListener implements Listener {
                 g.getInventory().setLeggings(orangeleg);
                 g.getInventory().setBoots(orangeboot);
 
-                if (g.getPersistentDataContainer().has(PrisonGame.hg, PersistentDataType.INTEGER)) {
+                if (g.getPersistentDataContainer().has(Keys.HEAD_GUARD.key(), PersistentDataType.INTEGER)) {
                     g.getInventory().setBoots(new ItemStack(Material.NETHERITE_BOOTS));
                 }
 
@@ -183,7 +184,7 @@ public class PlayerRespawnListener implements Listener {
                 g.getInventory().setLeggings(orangeleg);
                 g.getInventory().setBoots(orangeboot);
 
-                if (g.getPersistentDataContainer().has(PrisonGame.hg, PersistentDataType.INTEGER)) {
+                if (g.getPersistentDataContainer().has(Keys.HEAD_GUARD.key(), PersistentDataType.INTEGER)) {
                     g.getInventory().setBoots(new ItemStack(Material.NETHERITE_BOOTS));
                 }
 
@@ -221,7 +222,7 @@ public class PlayerRespawnListener implements Listener {
                 p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.GOLD + "PRISONER" + ChatColor.GRAY + "] " + ChatColor.DARK_GRAY + p.getName());
 
             }
-            if (event.getPlayer().getPersistentDataContainer().has(PrisonGame.protspawn, PersistentDataType.INTEGER)) {
+            if (event.getPlayer().getPersistentDataContainer().has(Keys.SPAWN_PROTECTION.key(), PersistentDataType.INTEGER)) {
                 if (PrisonGame.roles.get(event.getPlayer()) != Role.PRISONER) {
                     if (event.getPlayer().getInventory().getHelmet() != null)
                         event.getPlayer().getInventory().getHelmet().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
@@ -256,7 +257,7 @@ public class PlayerRespawnListener implements Listener {
             bat.setSilent(true);
             bat.addPotionEffect(PotionEffectType.INVISIBILITY.createEffect(99999999, 10));
             event.getPlayer().setGameMode(GameMode.SPECTATOR);
-            if (event.getPlayer().getPersistentDataContainer().has(PrisonGame.randomz, PersistentDataType.INTEGER)) {
+            if (event.getPlayer().getPersistentDataContainer().has(Keys.RANDOM_ITEMS.key(), PersistentDataType.INTEGER)) {
                 Material[] rands = {
                         Material.WOODEN_AXE,
                         Material.GOLDEN_APPLE,

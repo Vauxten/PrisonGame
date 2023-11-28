@@ -1,5 +1,9 @@
 package prisongame.prisongame.commands;
 
+import me.coralise.spigot.API.CBPAPI;
+import me.coralise.spigot.CustomBansPlus;
+import me.coralise.spigot.players.CBPlayer;
+import me.coralise.spigot.players.PlayerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -12,27 +16,52 @@ import prisongame.prisongame.PrisonGame;
 import prisongame.prisongame.lib.Role;
 
 public class TeamChatCommand implements CommandExecutor {
-
-    // This method is called, when somebody uses our command
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!Bukkit.getPlayer(sender.getName()).getPersistentDataContainer().has(PrisonGame.muted, PersistentDataType.INTEGER)) {
-            String msg = String.join(" ", args);
-            if (PrisonGame.roles.get((Player) sender) == Role.PRISONER) {
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (PrisonGame.roles.get(p) == Role.PRISONER) {
-                        p.sendMessage(ChatColor.GRAY + "[" + ChatColor.GOLD + "PRISONER CHAT" + ChatColor.GRAY + "] " + ChatColor.WHITE + sender.getName() + ": " + FilteredWords.filtermsg(msg));
-                    }
-                }
-            }
-            if (PrisonGame.roles.get((Player) sender) != Role.PRISONER) {
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (PrisonGame.roles.get(p) != Role.PRISONER) {
-                        p.sendMessage(ChatColor.GRAY + "[" + ChatColor.BLUE + "GUARD CHAT" + ChatColor.GRAY + "] " + ChatColor.WHITE + sender.getName() + ": " + FilteredWords.filtermsg(msg));
-                    }
-                }
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can use this command.");
+            return true;
+        }
+
+        CBPAPI api = CBPAPI.getApi();
+
+        if (api != null) {
+            CustomBansPlus cbp = CustomBansPlus.getInstance();
+            PlayerManager playerManager = cbp.plm;
+
+            CBPlayer cbpPlayer = playerManager.getCBPlayer(player.getUniqueId());
+
+            if (api.isPlayerMuted(cbpPlayer)) {
+                player.sendMessage(ChatColor.RED + "You cannot use team chat while you are muted.");
+                return true;
             }
         }
+
+        String message = String.join(" ", args);
+        Role genericRole = getGenericRole(player);
+        String prefix = genericRole == Role.PRISONER ? "PRISONER" : "GUARD";
+        ChatColor color = genericRole == Role.PRISONER ? ChatColor.GOLD : ChatColor.BLUE;
+
+        for (Player recipient : Bukkit.getOnlinePlayers()) {
+            if (getGenericRole(recipient) != genericRole)
+                continue;
+
+            recipient.sendMessage(String.format(
+                    "%s[%s%s CHAT%s] %s: %s",
+                    ChatColor.GRAY,
+                    color,
+                    prefix,
+                    ChatColor.GRAY,
+                    player.getName(),
+                    FilteredWords.filtermsg(message)
+            ));
+        }
+
         return true;
+    }
+
+    private Role getGenericRole(Player player) {
+        Role role = PrisonGame.roles.get(player);
+        return role == Role.PRISONER ? Role.PRISONER : Role.GUARD;
     }
 }

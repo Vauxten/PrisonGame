@@ -13,6 +13,16 @@ import prisongame.prisongame.lib.Role;
 public class PassCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(PrisonGame.mm.deserialize("<red>Only players can execute this command."));
+            return true;
+        }
+
+        if (player.getHealth() < 10) {
+            sender.sendMessage(PrisonGame.mm.deserialize("<red>You cannot pass under 5 hearts."));
+            return true;
+        }
+
         if (args.length >= 1) {
             if (args[0].equalsIgnoreCase(sender.getName())) {
                 sender.sendMessage(ChatColor.RED + "You cannot pass to yourself.");

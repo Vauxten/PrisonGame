@@ -5,10 +5,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import prisongame.prisongame.MyTask;
 import prisongame.prisongame.PrisonGame;
+import prisongame.prisongame.lib.Keys;
 import prisongame.prisongame.lib.Role;
 
 import java.util.Arrays;
@@ -33,7 +33,7 @@ public class BlockBreakListener implements Listener {
                             }
                         }
                     }
-                    if (yesdothat && !event.getPlayer().hasPotionEffect(PotionEffectType.GLOWING) && !event.getPlayer().getPersistentDataContainer().has(PrisonGame.semicloak, PersistentDataType.INTEGER)) {
+                    if (yesdothat && !event.getPlayer().hasPotionEffect(PotionEffectType.GLOWING) && !Keys.SEMICLOAK.has(event.getPlayer())) {
                         event.getPlayer().sendMessage(ChatColor.RED + "You were caught breaking bars! Get a cloak next time!");
                         for (Player g : Bukkit.getOnlinePlayers()) {
                             if (PrisonGame.roles.get(g) != Role.PRISONER) {
@@ -52,7 +52,7 @@ public class BlockBreakListener implements Listener {
                 event.setCancelled(false);
                 event.getBlock().setType(Material.DEEPSLATE);
                 event.getPlayer().playSound(event.getPlayer(), Sound.BLOCK_NOTE_BLOCK_BASEDRUM, 1, 1);
-                event.getPlayer().getPersistentDataContainer().set(PrisonGame.mny, PersistentDataType.DOUBLE, event.getPlayer().getPersistentDataContainer().getOrDefault(PrisonGame.mny, PersistentDataType.DOUBLE, 0.0) + 30.0 * MyTask.jobm);
+                Keys.MONEY.set(event.getPlayer(), Keys.MONEY.get(event.getPlayer(), 0.0) + 30.0 * MyTask.jobm);
                 event.getPlayer().setCooldown(Material.IRON_PICKAXE, 5);
                 Bukkit.getScheduler().runTaskLater(PrisonGame.getPlugin(PrisonGame.class), () -> {
                     event.getBlock().setType(PrisonGame.oretypes[new Random().nextInt(0, PrisonGame.oretypes.length - 1)]);

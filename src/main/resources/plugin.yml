@@ -1,10 +1,43 @@
 name: PrisonGame
 version: ${project.version}
+softdepend:
+  - CustomBansPlus
 depend:
+  - LuckPerms
   - LibsDisguises
 main: prisongame.prisongame.PrisonGame
-api-version: 1.19
+api-version: "1.20"
+libraries:
+  - org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.20
 commands:
+  balance:
+    description: View balance and leaderboard.
+    usage: /balance (leaderboard/view) [player]
+  debug:
+    description: Debug command
+    usage: /debug
+    permission: pbb.debug
+  season:
+    description: Begin a new season.
+    usage: /season
+    permission: pbb.season
+  vanish:
+    description: Hide from players.
+    usage: /vanish
+    permission: pbb.vanish
+    aliases: /v
+  enderchest:
+    description: Inspect/clear ender chests.
+    usage: /enderchest <inspect/view> (player)
+    permission: pbb.enderchest
+    aliases: /ec
+  pbbreload:
+    description: Reloads configuration.
+    usage: /pbbreload
+    permission: pbb.reload
+  rules:
+    description: Rules.
+    usage: /rules
   warden:
     description: Warden-Based commands.
     usage: /<command>

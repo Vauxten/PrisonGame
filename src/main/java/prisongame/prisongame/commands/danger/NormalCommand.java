@@ -8,9 +8,9 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.persistence.PersistentDataType;
 import prisongame.prisongame.MyListener;
 import prisongame.prisongame.PrisonGame;
+import prisongame.prisongame.lib.Keys;
 import prisongame.prisongame.lib.Role;
 
 public class NormalCommand implements CommandExecutor {
@@ -22,8 +22,8 @@ public class NormalCommand implements CommandExecutor {
             Player pe = (Player) sender;
             if (!((Player) sender).getDisplayName().contains("SOLITARY") && !((Player) sender).hasCooldown(Material.IRON_DOOR) && !new Location(pe.getWorld(), pe.getLocation().getX(), pe.getLocation().getY() - 1, pe.getLocation().getZ()).getBlock().getType().equals(Material.RED_SAND)) {
                 Player p = (Player) sender;
-                p.getPersistentDataContainer().set(PrisonGame.mny, PersistentDataType.DOUBLE, p.getPersistentDataContainer().getOrDefault(PrisonGame.bckupmny, PersistentDataType.DOUBLE, 0.0));
-                p.getPersistentDataContainer().set(PrisonGame.bckupmny, PersistentDataType.DOUBLE, 0.0);
+                Keys.MONEY.set(p, Keys.BACKUP_MONEY.get(p, 0.0));
+                Keys.BACKUP_MONEY.set(p, 0.0);
                 if (PrisonGame.warden != null) {
                     if (PrisonGame.warden.equals(sender)) {
                         PrisonGame.warden = null;

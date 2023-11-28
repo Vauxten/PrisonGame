@@ -33,19 +33,21 @@ public class WardenCommand implements CommandExecutor {
             return true;
 
         CommandExecutor subcommand = switch (args[0]) {
-            case "nurse" -> new NurseCommand();
-            case "guard" -> new GuardCommand();
-            case "swat" -> new SwatCommand();
             case "fire" -> new FireCommand();
-            case "pass" -> new PassCommand();
-            case "resign" -> new ResignCommand();
-            case "target" -> new TargetCommand();
-            case "solitary" -> new SolitaryCommand();
-            case "prefix" -> new PrefixCommand();
+            case "grammar" -> new GrammarCommand();
+            case "guard" -> new GuardCommand();
             case "intercom" -> new IntercomCommand();
             case "mutechat" -> new MuteChatCommand();
-            case "grammar" -> new GrammarCommand();
+            case "nurse" -> new NurseCommand();
+            case "pass" -> new PassCommand();
+            case "prefix" -> new PrefixCommand();
             case "release" -> new ReleaseCommand();
+            case "resign" -> new ResignCommand();
+            case "skip" -> new SkipCommand();
+            case "solitary" -> new SolitaryCommand();
+            case "swat" -> new SwatCommand();
+            case "target" -> new TargetCommand();
+            case "femboys" -> new FemboysCommand();
             default -> new HelpCommand();
         };
 

@@ -19,6 +19,7 @@ out/
 
 # Package Files #
 *.jar
+!CustomBansPlus-3.6.jar
 *.war
 *.nar
 *.ear

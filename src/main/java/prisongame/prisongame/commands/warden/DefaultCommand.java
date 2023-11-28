@@ -82,10 +82,6 @@ public class DefaultCommand implements CommandExecutor {
         wardenSword.addEnchantment(Enchantment.DAMAGE_ALL, 2);
         wardenSword.addEnchantment(Enchantment.DURABILITY, 2);
 
-        if (nw.getPersistentDataContainer().has(PrisonGame.reinforcement, PersistentDataType.INTEGER)) {
-            nw.getInventory().addItem(new ItemStack(Material.DIAMOND_AXE));
-            nw.getInventory().setHelmet(new ItemStack(Material.IRON_HELMET));
-        }
 
         nw.getInventory().addItem(wardenSword);
         nw.getInventory().addItem(new ItemStack(Material.BOW));
@@ -98,16 +94,16 @@ public class DefaultCommand implements CommandExecutor {
         card.setItemMeta(cardm);
         nw.getInventory().addItem(card);
 
-        if (nw.getPersistentDataContainer().has(PrisonGame.protspawn, PersistentDataType.INTEGER)) {
-            if (nw.getInventory().getHelmet() != null)
-                nw.getInventory().getHelmet().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
-            if (nw.getInventory().getChestplate() != null)
-                nw.getInventory().getChestplate().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
-            if (nw.getInventory().getLeggings() != null)
-                nw.getInventory().getLeggings().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
-            if (nw.getInventory().getBoots() != null)
-                nw.getInventory().getBoots().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
-        }
+        if (nw.getInventory().getHelmet() != null)
+            nw.getInventory().getHelmet().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
+        if (nw.getInventory().getChestplate() != null)
+            nw.getInventory().getChestplate().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
+        if (nw.getInventory().getLeggings() != null)
+            nw.getInventory().getLeggings().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
+        if (nw.getInventory().getBoots() != null)
+            nw.getInventory().getBoots().addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, 1);
+
+        nw.setHealth(20);
 
         return true;
     }

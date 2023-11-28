@@ -3,8 +3,14 @@ package prisongame.prisongame;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.jetbrains.annotations.Nullable;
 
 public class Prison {
+    @Nullable public Material material;
+    public boolean displayInSelector;
+    public String displayName;
+    public int priority;
     public Location runpoint1;
     public Location runpoint2;
 
@@ -23,8 +29,14 @@ public class Prison {
     public Location bmshop;
     public Location bmshop2;
     public Location guardShop;
-    public Prison(String nm, Location rp1, Location rp2, Location nb, Location nbot, Location ws, Location cls, Location bme, Location bmoute, Location sol, Location br, Location cfd1, Location cfd2) {
+    public Location mapSwitch;
+    public Prison(boolean display, @Nullable Material mat, String displayName, int priority, String nm, Location ms, Location rp1, Location rp2, Location nb, Location nbot, Location ws, Location cls, Location bme, Location bmoute, Location sol, Location br, Location cfd1, Location cfd2) {
+        displayInSelector = display;
+        material = mat;
+        this.displayName = displayName;
+        this.priority = priority;
         name = nm;
+        mapSwitch = ms;
         runpoint1 = rp1;
         runpoint2 = rp2;
         nursebed = nb;
@@ -37,7 +49,7 @@ public class Prison {
         bmout = bmoute;
         cafedoor1 = cfd1;
         cafedoor2 = cfd2;
-        Bukkit.broadcastMessage("activated prison " + nm + " world: " + cls.getWorld().getName());
+//        Bukkit.broadcastMessage("activated prison " + nm + " world: " + cls.getWorld().getName());
         /*for (Integer x = 1; x <= 3; x++) {
             Bukkit.getWorld("world").getBlockAt(x, -58, -1008).setType(Material.MUD_BRICKS);
         }

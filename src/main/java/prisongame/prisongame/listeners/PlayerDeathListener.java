@@ -1,16 +1,15 @@
 package prisongame.prisongame.listeners;
 
+import net.minecraft.network.chat.ChatClickable;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import prisongame.prisongame.MyListener;
 import prisongame.prisongame.PrisonGame;
+import prisongame.prisongame.lib.Keys;
 import prisongame.prisongame.lib.Role;
 
 public class PlayerDeathListener implements Listener {
@@ -18,11 +17,25 @@ public class PlayerDeathListener implements Listener {
     public void onPlayerDeath2(PlayerDeathEvent event) {
         Player p = event.getEntity();
         if(p.isDead()) {
-            if (p.getKiller() != null) {
+            var killer = p.getKiller();
+
+            if (killer == null)
+                return;
+
+            var inventory = killer.getInventory();
+            var mainHand = inventory.getItemInMainHand();
+            var meta = mainHand.getItemMeta();
+
+            if (
+                    !meta.getDisplayName().equals(ChatColor.BLUE + "Handcuffs " + ChatColor.RED + "[CONTRABAND]") ||
+                    killer.hasCooldown(Material.IRON_SHOVEL) ||
+                    killer.hasPotionEffect(PotionEffectType.UNLUCK) ||
+                    !p.getPassengers().isEmpty()
+            ) {
                 p.getKiller().playSound(p.getKiller(), Sound.BLOCK_NOTE_BLOCK_BASS, 1, 2);
                 if (p.hasPotionEffect(PotionEffectType.GLOWING)) {
                     p.getKiller().sendMessage(ChatColor.GREEN + "You gained a little bit of money for killing a criminal.");
-                    p.getKiller().getPersistentDataContainer().set(PrisonGame.mny, PersistentDataType.DOUBLE ,p.getKiller().getPersistentDataContainer().getOrDefault(PrisonGame.mny, PersistentDataType.DOUBLE, 0.0) + 100.0);
+                    Keys.MONEY.set(p.getKiller(), Keys.MONEY.get(p.getKiller(), 0.0) + 100.0);
                 } else {
                     if (PrisonGame.roles.get(p.getKiller()) == Role.PRISONER) {
                         p.getKiller().addPotionEffect(PotionEffectType.GLOWING.createEffect(20 * 5, 0));
@@ -34,31 +47,52 @@ public class PlayerDeathListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
-        if (event.getEntity().getKiller() != null) {
-            if (!event.getEntity().getKiller().equals(event.getEntity()) ) {
-                event.getEntity().getKiller().getInventory().getItemInMainHand();
-                if (event.getEntity().getKiller().getInventory().getItemInMainHand().getItemMeta() != null) {
-                    if (event.getEntity().getKiller().getInventory().getItemInMainHand().getItemMeta().getDisplayName().equals(ChatColor.BLUE + "Handcuffs " + ChatColor.RED + "[CONTRABAND]")) {
-                        if (!event.getEntity().getKiller().hasCooldown(Material.IRON_SHOVEL)) {
-                            event.setCancelled(true);
-                            event.getEntity().addPotionEffect(PotionEffectType.WEAKNESS.createEffect(20 * 30, 255));
-                            event.getEntity().addPotionEffect(PotionEffectType.DOLPHINS_GRACE.createEffect(20 * 30, 255));
-                            event.getEntity().sendTitle(ChatColor.RED + "HANDCUFFED!", "", 20, 160, 20);
-                            Player p = event.getEntity();
-                            p.getKiller().addPassenger(p);
-                            event.getEntity().getKiller().sendMessage(ChatColor.GREEN + "Shift to drop players.");
-                            return;
-                        }
-                    }
+        var player = event.getEntity();
+        var killer = player.getKiller();
+
+        for (var passenger : player.getPassengers()) {
+            if (!(passenger instanceof Player playerPassenger))
+                continue;
+
+            playerPassenger.removePotionEffect(PotionEffectType.DOLPHINS_GRACE);
+        }
+
+        if (killer != null) {
+            if (!killer.equals(player) ) {
+                var inventory = killer.getInventory();
+                var mainHand = inventory.getItemInMainHand();
+                var meta = mainHand.getItemMeta();
+                if (
+                        meta != null &&
+                        meta.getDisplayName().equals(ChatColor.BLUE + "Handcuffs " + ChatColor.RED + "[CONTRABAND]") &&
+                        !killer.hasCooldown(Material.IRON_SHOVEL) &&
+                        !killer.hasPotionEffect(PotionEffectType.UNLUCK) &&
+                        player.getPassengers().isEmpty()
+                ) {
+                    event.setCancelled(true);
+                    event.getEntity().addPotionEffect(PotionEffectType.WEAKNESS.createEffect(20 * 30, 255));
+                    event.getEntity().addPotionEffect(PotionEffectType.DOLPHINS_GRACE.createEffect(20 * 30, 255));
+                    event.getEntity().sendTitle(ChatColor.RED + "HANDCUFFED!", "", 20, 160, 20);
+                    Player p = event.getEntity();
+                    p.getKiller().addPassenger(p);
+                    event.getEntity().getKiller().sendMessage(ChatColor.GREEN + "Shift to drop players.");
+                    return;
                 }
             }
             PrisonGame.killior.put(event.getEntity(), event.getEntity().getKiller());
         }
-        event.getDrops().removeIf(i -> i.getType() == Material.TRIPWIRE_HOOK);
-        event.getDrops().removeIf(i -> i.getType() == Material.WOODEN_AXE);
-        event.getDrops().removeIf(i -> i.getType() == Material.WOODEN_SWORD);
-        event.getDrops().removeIf(i -> i.getType() == Material.CARROT_ON_A_STICK);
-        event.getDrops().removeIf(i -> i.getType() == Material.IRON_DOOR);
+        event.getDrops().removeIf(i ->
+                i.getType() == Material.TRIPWIRE_HOOK ||
+                i.getType() == Material.WOODEN_AXE ||
+                i.getType() == Material.WOODEN_SWORD ||
+                i.getType() == Material.CARROT_ON_A_STICK ||
+                i.getType() == Material.IRON_DOOR ||
+                i.getType() == Material.STONE_BUTTON ||
+                i.getType() == Material.BOWL ||
+                i.getType() == Material.GLASS_BOTTLE ||
+                i.getType() == Material.IRON_SHOVEL ||
+                i.getType() == Material.BUCKET ||
+                (i.getItemMeta() != null && i.getItemMeta().getDisplayName().contains("Prisoner Uniform")));
         if (Bukkit.getWorld("world").getTime() > 16000 && Bukkit.getWorld("world").getTime() < 24000) {
             if (event.getPlayer().getKiller() != null) {
                 if (event.getPlayer().getKiller().getInventory().getItemInMainHand().getType().equals(Material.TORCH)) {
@@ -123,7 +157,7 @@ public class PlayerDeathListener implements Listener {
         if (PrisonGame.roles.get(event.getEntity()) == Role.PRISONER) {
             event.setDeathMessage(ChatColor.GRAY + event.getDeathMessage());
             if (event.getEntity().getKiller() != null) {
-                if (PrisonGame.roles.get(event.getEntity().getKiller()) == Role.WARDEN) {
+                if (PrisonGame.roles.get(event.getEntity().getKiller()) == Role.WARDEN && event.getEntity().hasPotionEffect(PotionEffectType.UNLUCK)) {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "advancement grant " + event.getEntity().getName() + " only prison:badluck");
                 }
                 if (PrisonGame.escaped.get(event.getEntity().getKiller())) {

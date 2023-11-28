@@ -5,7 +5,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import prisongame.prisongame.PrisonGame;
+import prisongame.prisongame.lib.Keys;
 
 public class ResetAscensionCommand implements CommandExecutor {
 
@@ -14,12 +14,12 @@ public class ResetAscensionCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender instanceof Player) {
             Player p = (Player) sender;
-            p.getPersistentDataContainer().remove(PrisonGame.randomz);
-            p.getPersistentDataContainer().remove(PrisonGame.taxevasion);
-            p.getPersistentDataContainer().remove(PrisonGame.protspawn);
-            p.getPersistentDataContainer().remove(PrisonGame.reinforcement);
-            p.getPersistentDataContainer().remove(PrisonGame.semicloak);
-            p.getPersistentDataContainer().remove(PrisonGame.ascendcoins);
+            p.getPersistentDataContainer().remove(Keys.RANDOM_ITEMS.key());
+            p.getPersistentDataContainer().remove(Keys.TAX_EVASION.key());
+            p.getPersistentDataContainer().remove(Keys.SPAWN_PROTECTION.key());
+            p.getPersistentDataContainer().remove(Keys.REINFORCEMENT.key());
+            p.getPersistentDataContainer().remove(Keys.SEMICLOAK.key());
+            p.getPersistentDataContainer().remove(Keys.ASCENSION_COINS.key());
             p.sendMessage(ChatColor.RED + "Your ascension has been reset!");
         }
         return true;

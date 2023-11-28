@@ -2,6 +2,8 @@ package prisongame.prisongame;
 
 import me.libraryaddict.disguise.DisguiseAPI;
 import me.libraryaddict.disguise.disguisetypes.PlayerDisguise;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -22,7 +24,11 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import prisongame.prisongame.commands.staff.VanishCommand;
+import prisongame.prisongame.lib.Config;
+import prisongame.prisongame.lib.Keys;
 import prisongame.prisongame.lib.Role;
+import prisongame.prisongame.listeners.InventoryClickListener;
 
 import java.text.DecimalFormat;
 
@@ -43,15 +49,15 @@ public class MyTask extends BukkitRunnable {
     public void run() {
         PrisonGame.solitcooldown = PrisonGame.solitcooldown - 1;
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getPersistentDataContainer().getOrDefault(PrisonGame.trust, PersistentDataType.DOUBLE, 0.0) > 0) {
-                p.getPersistentDataContainer().set(PrisonGame.trust, PersistentDataType.DOUBLE, 0.0);
+            if (p.getPersistentDataContainer().getOrDefault(Keys.TRUST.key(), PersistentDataType.DOUBLE, 0.0) > 0) {
+                p.getPersistentDataContainer().set(Keys.TRUST.key(), PersistentDataType.DOUBLE, 0.0);
             }
             DisguiseAPI.setActionBarShown(p, false);
             if (p.isSleeping()) {
                 p.setNoDamageTicks(10);
             }
             if (!PrisonGame.wealthcycle.containsKey(p)) {
-                PrisonGame.wealthcycle.put(p, p.getPersistentDataContainer().get(PrisonGame.mny, PersistentDataType.DOUBLE));
+                PrisonGame.wealthcycle.put(p, p.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE));
             }
             if (!PrisonGame.wardentime.containsKey(p) || p != PrisonGame.warden) {
                 PrisonGame.wardentime.put(p, 0);
@@ -65,8 +71,8 @@ public class MyTask extends BukkitRunnable {
             if (!PrisonGame.prisonerlevel.containsKey(p)) {
                 PrisonGame.prisonerlevel.put(p, 0);
             }
-            if (p.getPersistentDataContainer().has(PrisonGame.hg))
-                p.getPersistentDataContainer().remove(PrisonGame.hg);
+            if (p.getPersistentDataContainer().has(Keys.HEAD_GUARD.key()))
+                p.getPersistentDataContainer().remove(Keys.HEAD_GUARD.key());
             PrisonGame.handcuff.put(p, null);
             if (PrisonGame.worryachieve.get(p) >= 0) {
                 PrisonGame.worryachieve.put(p, PrisonGame.worryachieve.get(p) + 1);
@@ -77,9 +83,10 @@ public class MyTask extends BukkitRunnable {
             }
             if (PrisonGame.warden == p) {
                 PrisonGame.wardentime.put(p, PrisonGame.wardentime.get(p) + 1);
-                if (PrisonGame.wardentime.get(p) / 20 / 60 >= 120) {
+                var advancement = Bukkit.getAdvancement(new NamespacedKey("prison", "dictatorship"));
+                if (PrisonGame.wardentime.get(p) / 20 / 60 >= 120 && !p.getAdvancementProgress(advancement).isDone()) {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "advancement grant " + p.getName() + " only prison:dictatorship");
-                    PrisonGame.wardentime.put(p, Integer.MIN_VALUE);
+//                    PrisonGame.wardentime.put(p, Integer.MIN_VALUE);
                 }
             }
             if (!PrisonGame.saidcycle.containsKey(p)) {
@@ -143,11 +150,11 @@ public class MyTask extends BukkitRunnable {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "advancement grant " + PrisonGame.warden.getName() + " only prison:piggo");
                 PrisonGame.givepig = false;
             }
-            if (p.getPersistentDataContainer().has(PrisonGame.muted, PersistentDataType.INTEGER)) {
-                if (p.getPersistentDataContainer().get(PrisonGame.muted, PersistentDataType.INTEGER) <= 0) {
-                    p.getPersistentDataContainer().remove(PrisonGame.muted);
+            if (p.getPersistentDataContainer().has(Keys.MUTED.key(), PersistentDataType.INTEGER)) {
+                if (p.getPersistentDataContainer().get(Keys.MUTED.key(), PersistentDataType.INTEGER) <= 0) {
+                    p.getPersistentDataContainer().remove(Keys.MUTED.key());
                 } else {
-                    p.getPersistentDataContainer().set(PrisonGame.muted, PersistentDataType.INTEGER, p.getPersistentDataContainer().get(PrisonGame.muted, PersistentDataType.INTEGER) - 1);
+                    p.getPersistentDataContainer().set(Keys.MUTED.key(), PersistentDataType.INTEGER, p.getPersistentDataContainer().get(Keys.MUTED.key(), PersistentDataType.INTEGER) - 1);
                 }
 
             }
@@ -185,7 +192,7 @@ public class MyTask extends BukkitRunnable {
             bossbar.setTitle("ROLL CALL");
             hasAlerted = false;
         }
-        if (MyTask.bossbar.getTitle().equals("ROLL CALL") || MyTask.bossbar.getTitle().equals("EVENING ROLL CALL")) {
+        if (MyTask.bossbar.getTitle().contains("ROLL CALL")) {
             Boolean allat = true;
             PrisonGame.gotcafefood.clear();
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -201,7 +208,7 @@ public class MyTask extends BukkitRunnable {
                         p.removePotionEffect(PotionEffectType.JUMP);
                     } else {
                         p.setFoodLevel(6);
-                        if (p.hasPotionEffect(PotionEffectType.GLOWING)) {
+                        if (p.hasPotionEffect(PotionEffectType.GLOWING) && p.getGameMode() != GameMode.SPECTATOR) {
                             p.sendMessage(ChatColor.GREEN + "You came to roll call!");
                             p.playSound(p, Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                         }
@@ -227,7 +234,7 @@ public class MyTask extends BukkitRunnable {
                         }
                         p.setHealth(p.getMaxHealth());
                         p.setFoodLevel(6);
-                        if (p.hasPotionEffect(PotionEffectType.GLOWING)) {
+                        if (p.hasPotionEffect(PotionEffectType.GLOWING) && p.getGameMode() != GameMode.SPECTATOR) {
                             p.sendMessage(ChatColor.GREEN + "You came to roll call!");
                             p.playSound(p, Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                         }
@@ -244,7 +251,7 @@ public class MyTask extends BukkitRunnable {
             }
             if (allat && PrisonGame.warden != null) {
                 PrisonGame.warden.sendMessage(ChatColor.GREEN + "All prisoners at roll call! +1k$!");
-                PrisonGame.warden.getPersistentDataContainer().set(PrisonGame.mny, PersistentDataType.DOUBLE, PrisonGame.warden.getPersistentDataContainer().get(PrisonGame.mny, PersistentDataType.DOUBLE) + 1000.0);
+                PrisonGame.warden.getPersistentDataContainer().set(Keys.MONEY.key(), PersistentDataType.DOUBLE, PrisonGame.warden.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE) + 1000.0);
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     Bukkit.getScheduler().runTaskLater(PrisonGame.getPlugin(PrisonGame.class), () -> {
                         p.sendTitle("", ChatColor.BOLD + bossbar.getTitle(), 20, 40, 20);
@@ -268,12 +275,12 @@ public class MyTask extends BukkitRunnable {
         if (Bukkit.getWorld("world").getTime() == 2000) {
             if (!hasAlerted) {
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.getPersistentDataContainer().has(PrisonGame.mny, PersistentDataType.DOUBLE)) {
+                    if (p.getPersistentDataContainer().has(Keys.MONEY.key(), PersistentDataType.DOUBLE)) {
                         try {
-                            if (p.getPersistentDataContainer().getOrDefault(PrisonGame.mny, PersistentDataType.DOUBLE, 0.0) - PrisonGame.wealthcycle.get(p) >= 3000) {
+                            if (p.getPersistentDataContainer().getOrDefault(Keys.MONEY.key(), PersistentDataType.DOUBLE, 0.0) - PrisonGame.wealthcycle.get(p) >= 3000) {
                                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "advancement grant " + p.getName() + " only prison:wealthy");
                             }
-                            PrisonGame.wealthcycle.put(p, p.getPersistentDataContainer().get(PrisonGame.mny, PersistentDataType.DOUBLE));
+                            PrisonGame.wealthcycle.put(p, p.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE));
                         } catch (NullPointerException ignored) {
                             Bukkit.getLogger().info(p.getName() + " seems to not have a money container?");
                         }
@@ -387,7 +394,7 @@ public class MyTask extends BukkitRunnable {
             Bukkit.getWorld("world").setTime(0);
         }
         if (Bukkit.getWorld("world").getTime() == 16000) {
-            Bukkit.broadcastMessage(ChatColor.RED + "All cells have been automatticaly closed! " + ChatColor.DARK_RED + "GET TO SLEEP!");
+            Bukkit.broadcastMessage(ChatColor.RED + "All cells have been automatically closed! " + ChatColor.DARK_RED + "GET TO SLEEP!");
             LivingEntity le = (LivingEntity) Bukkit.getWorld("world").spawnEntity(new Location(Bukkit.getWorld("world"), -40, -58, -973), EntityType.ZOMBIE);
             le.addPotionEffect(PotionEffectType.INCREASE_DAMAGE.createEffect(999999, 255));
             le.addPotionEffect(PotionEffectType.SPEED.createEffect(999999, 2));
@@ -618,6 +625,7 @@ public class MyTask extends BukkitRunnable {
                     }
                 }
                 if (PrisonGame.roles.get(p) == Role.PRISONER && !PrisonGame.escaped.get(p)) {
+                    p.addPotionEffect(PotionEffectType.SATURATION.createEffect(20, 3));
                     p.getWorld().getWorldBorder().setWarningDistance(Integer.MAX_VALUE);
                     if (p.getWorld().getName().equals("endprison")) {
                         if (!new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY() - 1, p.getLocation().getZ()).getBlock().getType().equals(Material.JIGSAW)) {
@@ -680,7 +688,20 @@ public class MyTask extends BukkitRunnable {
         if (PrisonGame.active.getName().equals("Island")) {
             bossbar.addFlag(BarFlag.CREATE_FOG);
         }
-        bossbar.setProgress(((float) Bukkit.getWorld("world").getTime() - (float) timer1) / ((float) timer2 - (float) timer1));
+        bossbar.setTitle(ChatColor.BOLD + bossbar.getTitle());
+        bossbar.setProgress(Math.max(0, Math.min(1, ((float) Bukkit.getWorld("world").getTime() - (float) timer1) / ((float) timer2 - (float) timer1))));
+        if (PrisonGame.active.getName().equals("Barreled")) {
+            bossbar.setTitle(bossbar.getTitle() + ChatColor.GREEN + " Power: " + PrisonGame.BBpower);
+            if (Bukkit.getWorld("world").getBlockAt(new Location(Bukkit.getWorld("world"),-1023,-57,-994)).getType().equals(Material.AIR)) {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (PrisonGame.roles.get(p).equals(Role.PRISONER)) {
+                        p.addPotionEffect(PotionEffectType.SPEED.createEffect(20*5,0));
+                    }
+                }
+            } else {
+
+            }
+        }
         if (Bukkit.getWorld("world").getTime() == timer2) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 Bukkit.getScheduler().runTaskLater(PrisonGame.getPlugin(PrisonGame.class), () -> {
@@ -695,99 +716,112 @@ public class MyTask extends BukkitRunnable {
                 }, 8);
             }
         }
-        DecimalFormat numberFormat3 = new DecimalFormat("#0.0");
-        String n = "(No Warden!)";
-        if (PrisonGame.warden != null) {
-            n = PrisonGame.wardentime.get(PrisonGame.warden) / (20 * 60) + "m";
-        }
 
+        var format = new DecimalFormat("#0.0");
+        var timer = PrisonGame.mm.deserialize(PrisonGame.warden == null
+                ? "(No Warden!)"
+                : PrisonGame.wardentime.get(PrisonGame.warden) / (20 * 60) + "m");
 
-        String warden2 = "No warden!";
-        if (PrisonGame.warden != null) {
-            String finisher = ")";
-            if (PrisonGame.warden.getNoDamageTicks() > 0) {
-                finisher = ChatColor.AQUA + " [" + PrisonGame.warden.getNoDamageTicks() / 20 + "s of No-Damage]" + ChatColor.RED + ")";
+        var wardenDisplay = PrisonGame.warden == null
+                ? PrisonGame.mm.deserialize("No warden!")
+                : PrisonGame.mm.deserialize(
+                        "<name> <ping>\n<red>(<health> HP <aqua><damage></aqua>) for <time>",
+                        Placeholder.component("damage", PrisonGame.mm.deserialize(String.format(
+                                "[%ss of No-Damage]",
+                                PrisonGame.warden.getNoDamageTicks() / 20
+                        ))),
+                        Placeholder.component("name", PrisonGame.warden.displayName()),
+                        Placeholder.component("ping", PrisonGame.getPingDisplay(PrisonGame.warden)),
+                        Placeholder.component("health", PrisonGame.mm.deserialize("" + Math.round(PrisonGame.warden.getHealth()))),
+                        Placeholder.component("time", timer)
+                );
+
+        var guardCount = 0;
+        var prisonerCount = 0;
+
+        var guards = Component.empty();
+        var prisoners = Component.empty();
+
+        for (var player : Bukkit.getOnlinePlayers()) {
+            var role = PrisonGame.roles.get(player);
+
+            switch (role) {
+                case NURSE, GUARD, SWAT -> {
+                    if (!player.getPersistentDataContainer().has(VanishCommand.VANISHED)) {
+                        guards = guards.append(player
+                                .displayName()
+                                .append(Component.space())
+                                .append(PrisonGame.getPingDisplay(player))
+                                .append(Component.newline()));
+                    }
+                    guardCount++;
+                }
+                case PRISONER -> {
+                    if (player.isDead() || player.hasPotionEffect(PotionEffectType.LUCK)) {
+                        prisoners = prisoners.append(PrisonGame.mm.deserialize(
+                                "<dark_red>☠ <gray><player>\n",
+                                Placeholder.component("player", player.name())
+                        ));
+                        prisonerCount++;
+                        break;
+                    }
+                    if (!player.getPersistentDataContainer().has(VanishCommand.VANISHED)) {
+                        prisoners = prisoners.append(player
+                                .displayName()
+                                .append(Component.space())
+                                .append(PrisonGame.getPingDisplay(player))
+                                .append(Component.newline()));
+                    }
+                    prisonerCount++;
+                }
             }
-
-            warden2 = "{wardenname}\n {wardenstats} for {wardentime}";
-            warden2 = warden2.replace("{wardenname}", PrisonGame.warden.getDisplayName()).replace("{wardenstats}", ChatColor.RED + " (" + Math.round(PrisonGame.warden.getHealth()) + " HP" + finisher).replace("{wardentime}", n);
         }
-        String tab = ChatColor.translateAlternateColorCodes('&', "&7---\n&ePrisonButBad &7- &fmade by agmass!\n&aPlayers: ") + Bukkit.getOnlinePlayers().size() + ChatColor.translateAlternateColorCodes('&',"\n&c{warden}\n&7---\n\n&bGuards ").replace("{warden}", warden2);
 
-        String prisoners = "";
-        String guards = "";
+        var tab = PrisonGame.mm.deserialize("""
+                <gray>---
+                <yellow>PrisonButBad</yellow> - <white>made by agmass!</white>
+                <green>Players: <player-count></green>
+                <red><warden></red>
+                ---
+                
+                <aqua>Guards (<guard-count>):</aqua>
+                
+                <guards>
+                
+                ---
+                
+                <gold>Prisoners (<prisoner-count>):</gold>
+                
+                <prisoners>
+                <padding>
+                """,
+                Placeholder.component("player-count", PrisonGame.mm.deserialize("" + Bukkit.getOnlinePlayers().size())),
+                Placeholder.component("warden", wardenDisplay),
+                Placeholder.component("guard-count", PrisonGame.mm.deserialize("" + guardCount)),
+                Placeholder.component("guards", guards),
+                Placeholder.component("prisoner-count", PrisonGame.mm.deserialize("" + prisonerCount)),
+                Placeholder.component("prisoners", prisoners),
+                Placeholder.component("padding", PrisonGame.mm.deserialize("\n".repeat(50)))
+        );
         String civs = "";
 
         Integer pris = 0;
         Integer guard = 0;
 
+
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (PrisonGame.isInside(p, new Location(Bukkit.getWorld("world"), -2011, -53, -1929), new Location(Bukkit.getWorld("world"), -2009, -57, -1931))) {
                 if (PrisonGame.warden.equals(p)) {
-                        for (Player pe : Bukkit.getOnlinePlayers()) {
-                            pe.teleport(new Location(Bukkit.getWorld("world"), -2062, -50, 1945));
-                        }
-                        PrisonGame.active = PrisonGame.nether;
-                        PrisonGame.swapcool = (20 * 60) * 5;
-                        MyListener.reloadBert();
-                        for (Player pe : Bukkit.getOnlinePlayers()) {
-                            if (PrisonGame.roles.get(pe) != Role.WARDEN) {
-                                MyListener.playerJoin(pe, true);
-                                pe.sendTitle("New prison!", "NETHER");
-                            } else {
-                                pe.teleport(PrisonGame.active.getWardenspawn());
-                                Bukkit.getScheduler().runTaskLater(PrisonGame.getPlugin(PrisonGame.class), () -> {
-                                    pe.teleport(PrisonGame.active.getWardenspawn());
-                                }, 5);
-                                if (!pe.getDisplayName().contains("ASCENDING"))
-                                    pe.sendTitle("New prison!", "NETHER");
-                            }
-                        }
+                    if (PrisonGame.swapcool <= 0)
+                        InventoryClickListener.switchMap(Config.prisons.get("nether"));
+                    else {
+                        p.sendTitle(ChatColor.YELLOW + ("" + PrisonGame.swapcool / 20) + " seconds left.", ChatColor.RED + "That's on cooldown! ", 0, 50, 0);
+                    }
                 } else {
                     p.sendTitle("", ChatColor.RED + "YOU MUST BE WARDEN!", 0, 50, 0);
                 }
             }
-            if (PrisonGame.roles.get(p) != Role.PRISONER) {
-                ChatColor pingColor = ChatColor.GREEN;
-                if (p.getPing() >= 150) {
-                    pingColor = ChatColor.YELLOW;
-                }
-                if (p.getPing() >= 300) {
-                    pingColor = ChatColor.GOLD;
-                }
-                if (p.getPing() >= 450) {
-                    pingColor = ChatColor.RED;
-                }
-                if (p.getPing() >= 600) {
-                    pingColor = ChatColor.DARK_RED;
-                }
-                guard++;
-                if (!p.equals(PrisonGame.warden)) {
-                    if (!p.hasPotionEffect(PotionEffectType.LUCK) && !p.isDead()) {
-                        guards = guards + "\n" + p.getPlayerListName() + ChatColor.GRAY + " [" + pingColor + p.getPing() + ChatColor.GRAY + "ms]";
-                    } else {
-                        guards = guards + ChatColor.translateAlternateColorCodes('&', "\n &4☠&7 " + p.getName()) + ChatColor.GRAY + "[" + pingColor + p.getPing() + ChatColor.GRAY + "ms]";
-                    }
-                }
-            }
-            if (PrisonGame.roles.get(p) == Role.PRISONER) {
-                ChatColor pingColor = ChatColor.GREEN;
-                if (p.getPing() > 200) {
-                    pingColor = ChatColor.YELLOW;
-                }
-                if (p.getPing() > 400) {
-                    pingColor = ChatColor.RED;
-                }
-                pris++;
-                if (!p.hasPotionEffect(PotionEffectType.LUCK) && !p.isDead()) {
-                    prisoners = prisoners + "\n" + p.getDisplayName() + ChatColor.GRAY  + " [" + pingColor + p.getPing() + ChatColor.GRAY + "ms]";
-                } else {
-                    prisoners = prisoners + ChatColor.translateAlternateColorCodes('&', "\n &4☠&7 " + p.getName()) + ChatColor.GRAY  + "[" + pingColor + p.getPing() + ChatColor.GRAY + "ms]";
-                }
-            }
         }
-
-        tab = tab + ChatColor.translateAlternateColorCodes('&', "&b(" + guard + "):\n" + guards + "\n&7---\n\n&6Prisoners (" + pris + "):\n" + prisoners + "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (PrisonGame.calls.getOrDefault(p, 0) >= 10) {
                 PrisonGame.calls.put(p, Integer.MIN_VALUE);
@@ -804,9 +838,6 @@ public class MyTask extends BukkitRunnable {
                 p.setDisplayName(p.getDisplayName().replace("VISITOR", "i wish he was a prisoner"));
                 p.setDisplayName(p.getDisplayName().replace("CRIMINAL", "*snore* mimimimimi"));
             }
-            //if (!p.getPersistentDataContainer().has(PrisonGame.rank, PersistentDataType.INTEGER)) {
-            //    p.getPersistentDataContainer().set(PrisonGame.rank, PersistentDataType.INTEGER, 0);
-            //}
             if (p.getLocation().getBlockY() == -60 && PrisonGame.active.getName().equals("Train") && PrisonGame.isInside(p, PrisonGame.nl("world", 27D, -61D, 920D, 0f, 0f), PrisonGame.nl("world", 129D, 8D, 1041D, 0f, 0f))) {
                 p.damage(999);
             }
@@ -822,7 +853,7 @@ public class MyTask extends BukkitRunnable {
             if (p.getLocation().getY() < 118 && p.getWorld().getName().equals("endprison")) {
                 p.damage(999);
             }
-            if (p.getPersistentDataContainer().has(PrisonGame.nightvis, PersistentDataType.INTEGER)) {
+            if (p.getPersistentDataContainer().has(Keys.NIGHT_VISION.key(), PersistentDataType.INTEGER)) {
                 p.addPotionEffect(PotionEffectType.NIGHT_VISION.createEffect(99999, 255));
             } else {
                 p.removePotionEffect(PotionEffectType.NIGHT_VISION);
@@ -854,28 +885,49 @@ public class MyTask extends BukkitRunnable {
                     p.setFoodLevel(p.getFoodLevel() - 1);
                     p.sendTitle("", ChatColor.RED + "You can only sprint when you've escaped! [HARD MODE]", 0, 5, 0);
                 }
-                p.setMaxHealth(14);
+            }
+
+            if (p.getInventory().getHelmet() != null) {
+                if (!p.getInventory().getHelmet().getType().equals(Material.YELLOW_WOOL)) {
+                    p.setMaxHealth(20);
+                } else {
+                    p.addPotionEffect(PotionEffectType.SPEED.createEffect(20, 2));
+                }
             } else {
                 p.setMaxHealth(20);
             }
 
 
-            if (!p.getInventory().getItemInMainHand().getType().equals(Material.IRON_SHOVEL)) {
-            if (!PrisonGame.escaped.get(p) && PrisonGame.roles.get(p) == Role.PRISONER) {
-                p.setWalkSpeed(0.2f);
-                p.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(4);
+            if (p.getPersistentDataContainer().has(Keys.SEMICLOAK.key(), PersistentDataType.INTEGER)) {
+                p.getPersistentDataContainer().set(Keys.MONEY.key(), PersistentDataType.DOUBLE, p.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE)+1000);
+                p.sendMessage(ChatColor.RED + "Your semicloak ascension has been refunded and removed as ascensions have been removed!");
+                p.getPersistentDataContainer().remove(Keys.SEMICLOAK.key());
             }
-            if (PrisonGame.escaped.get(p)) {
-                p.setWalkSpeed(0.2f);
-                p.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(4.4);
+            if (p.getPersistentDataContainer().has(Keys.REINFORCEMENT.key(), PersistentDataType.INTEGER)) {
+                p.getPersistentDataContainer().set(Keys.MONEY.key(), PersistentDataType.DOUBLE, p.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE)+1000);
+                p.sendMessage(ChatColor.RED + "Your Reinforcement ascension has been refunded and removed as ascensions have been removed!");
+                p.getPersistentDataContainer().remove(Keys.REINFORCEMENT.key());
             }
-            if (PrisonGame.roles.get(p) != Role.PRISONER) {
-                p.setWalkSpeed(0.2f);
-                p.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(4.4);
+            if (p.getPersistentDataContainer().has(Keys.SPAWN_PROTECTION.key(), PersistentDataType.INTEGER)) {
+                p.getPersistentDataContainer().set(Keys.MONEY.key(), PersistentDataType.DOUBLE, p.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE)+1000);
+                p.sendMessage(ChatColor.RED + "Your protspawn ascension has been refunded and removed as ascensions have been removed!");
+                p.getPersistentDataContainer().remove(Keys.SPAWN_PROTECTION.key());
             }
-            } else {
-                p.getInventory().getItemInMainHand().setDurability((short) 3);
-                p.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(9999);
+            if (p.getPersistentDataContainer().has(Keys.RANDOM_ITEMS.key(), PersistentDataType.INTEGER)) {
+                p.sendMessage(ChatColor.RED + "Your Random item ascension has been refunded and removed as ascensions have been removed!");
+                p.getPersistentDataContainer().set(Keys.MONEY.key(), PersistentDataType.DOUBLE, p.getPersistentDataContainer().get(Keys.MONEY.key(), PersistentDataType.DOUBLE)+1000);
+                p.getPersistentDataContainer().remove(Keys.RANDOM_ITEMS.key());
+            }
+            if (p.getInventory().getItemInMainHand().getItemMeta() != null) {
+                var mainHand = p.getInventory().getItemInMainHand();
+                var meta = mainHand.getItemMeta();
+                if (meta != null && !meta.getDisplayName().equals(ChatColor.BLUE + "Handcuffs " + ChatColor.RED + "[CONTRABAND]")) {
+                    p.setWalkSpeed(0.2f);
+                    p.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(4.4);
+                } else {
+                    p.getInventory().getItemInMainHand().setDurability((short) 3);
+                    p.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(9999);
+                }
             }
 
             if (PrisonGame.prisonerlevel.getOrDefault(p, 0) == 1) {
@@ -895,7 +947,7 @@ public class MyTask extends BukkitRunnable {
 
             for (Player pe : Bukkit.getOnlinePlayers()) {
                 if (!p.canSee(pe) && p.isOnline()) {
-                    if (!pe.isInsideVehicle() && pe.isOnline()) {
+                    if (!pe.isInsideVehicle() && pe.isOnline() && !pe.getPersistentDataContainer().has(VanishCommand.VANISHED)) {
                         p.showPlayer(PrisonGame.getPlugin(PrisonGame.class), pe);
                     }
                 }
@@ -915,50 +967,22 @@ public class MyTask extends BukkitRunnable {
                 p.removePotionEffect(PotionEffectType.GLOWING);
             }
 
-            if (p.getName().equals("Kingdarksword") || p.getName().equals("C0sm1c__")) {
-                PrisonGame.escaped.put(p, true);
-                if (!p.getPlayerListName().contains("CHEF")) {
-                    p.setCustomName(ChatColor.GRAY + "[" + ChatColor.WHITE + "CHEF" + ChatColor.GRAY + "] " + p.getName());
-                    p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.WHITE + "CHEF" + ChatColor.GRAY + "] " + p.getName());
-                    p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.WHITE + "CHEF" + ChatColor.GRAY + "] " + p.getName());
-                }
-            }
-
             if (!PrisonGame.hardmode.get(p)) {
-                if (p.getName().equals("DeadCutie764") && !p.getPlayerListName().contains("REPORTER") || p.getName().equals("Jacco100") && !p.getPlayerListName().contains("REPORTER") || p.getName().equals("Goodgamer121") && !p.getPlayerListName().contains("REPORTER") || p.getName().equals("Evanbeer") && !p.getPlayerListName().contains("REPORTER") || p.getName().equals("teuli") && !p.getPlayerListName().contains("REPORTER")) {
-                    p.setCustomName(ChatColor.GRAY + "[" + ChatColor.GREEN + "REPORTER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.GREEN + "REPORTER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.GREEN + "REPORTER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                }
-                if (p.getName().equals("agmass") && !p.getPlayerListName().contains("OWNER")) {
-                    p.setCustomName(ChatColor.GRAY + "[" + ChatColor.DARK_RED + "OWNER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.DARK_RED + "OWNER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.DARK_RED + "OWNER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                }
-                if (p.getName().equals("4950") && !p.getPlayerListName().contains("BUILDER") || p.getName().equals("ClownCaked") && !p.getPlayerListName().contains("BUILDER") || p.getName().equals("Sanan1010") && !p.getPlayerListName().contains("BUILDER") || p.getName().equals("noahbt787") && !p.getPlayerListName().contains("BUILDER") || p.getName().equals("Evanbeer") && !p.getPlayerListName().contains("BUILDER")) {
-                    p.setCustomName(ChatColor.GRAY + "[" + ChatColor.YELLOW + "BUILDER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.YELLOW + "BUILDER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.YELLOW + "BUILDER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                }
-                if (p.getName().equals("vwdrYT") && !p.getPlayerListName().contains("BOOSTER") || p.getName().equals("TinyWiFi") && !p.getPlayerListName().contains("BOOSTER") || p.getName().equals("MonsterClaws_") && !p.getPlayerListName().contains("BOOSTER") || p.getName().equals("Hazardd_") && !p.getPlayerListName().contains("BOOSTER")) {
-                    p.setCustomName(ChatColor.GRAY + "[" + ChatColor.LIGHT_PURPLE + "BOOSTER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.LIGHT_PURPLE + "BOOSTER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.LIGHT_PURPLE + "BOOSTER" + ChatColor.GRAY + "] " + p.getDisplayName());
-                }
-                if (p.getName().equals("_CyberKnight_") && !p.getPlayerListName().contains("BUILD HELP")  || p.getName().equals("Vauxten") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("Maglcite_") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals(".Rileybt18") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("Moleman1231") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("Goodgamer121") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("foxboy99") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("ATee_") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("Kyrris") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("adam214") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("JuleczkaOwO") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("RennArpent") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("Kingdarksword") && !p.getPlayerListName().contains("BUILD HELP") || p.getName().equals("Susanne_h") && !p.getPlayerListName().contains("BUILD HELP")) {
-                    p.setCustomName(ChatColor.GRAY + "[" + ChatColor.YELLOW + "BUILD HELP" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.YELLOW + "BUILD HELP" + ChatColor.GRAY + "] " + p.getDisplayName());
-                    p.setDisplayName(ChatColor.GRAY + "[" + ChatColor.YELLOW + "BUILD HELP" + ChatColor.GRAY + "] " + p.getDisplayName());
+                if (PrisonGame.api.getPlayerAdapter(Player.class).getUser(p).getCachedData().getMetaData().getPrefix() != null) {
+                    if (!p.getDisplayName().contains(PrisonGame.api.getPlayerAdapter(Player.class).getUser(p).getCachedData().getMetaData().getPrefix())) {
+                        p.setCustomName(ChatColor.GRAY + "[" + PrisonGame.api.getPlayerAdapter(Player.class).getUser(p).getCachedData().getMetaData().getPrefix() + ChatColor.GRAY + "] " + p.getDisplayName());
+                        p.setPlayerListName(ChatColor.GRAY + "[" + PrisonGame.api.getPlayerAdapter(Player.class).getUser(p).getCachedData().getMetaData().getPrefix() + ChatColor.GRAY + "] " + p.getDisplayName());
+                        p.setDisplayName(ChatColor.GRAY + "[" + PrisonGame.api.getPlayerAdapter(Player.class).getUser(p).getCachedData().getMetaData().getPrefix() + ChatColor.GRAY + "] " + p.getDisplayName());
+                    }
                 }
             } else {
                 p.setPlayerListName(ChatColor.GRAY + "[" + ChatColor.RED + "HARD MODE" + ChatColor.GRAY + "] " + ChatColor.GRAY + p.getName());
             }
-            if (!p.getPersistentDataContainer().has(PrisonGame.tab)) {
-                p.setPlayerListHeaderFooter(tab, "hi");
+            if (!p.getPersistentDataContainer().has(Keys.OLD_TAB.key())) {
+                p.sendPlayerListHeader(tab);
             } else {
-                p.setPlayerListHeader("");
+                p.sendPlayerListHeaderAndFooter(Component.empty(), PrisonGame.mm.deserialize("Imagine using old tab. Actual pussy move ngl"));
             }
-            p.setPlayerListFooter("Imagine using old tab. Actual pussy move ngl");
             /*if (p.hasPotionEffect(PotionEffectType.GLOWING)) {
                 if (PrisonGame.type.get(p) == 0 && Bukkit.getScoreboardManager().getMainScoreboard().getPlayerTeam(p) == Bukkit.getScoreboardManager().getMainScoreboard().getTeam("Prisoners")) {
                     Bukkit.getScoreboardManager().getMainScoreboard().getTeam("Criminals").addPlayer(p);
@@ -1047,9 +1071,9 @@ public class MyTask extends BukkitRunnable {
             }
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.getDisplayName().contains("ASCENDING")) {
-                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GREEN + numberFormat.format(p.getPersistentDataContainer().getOrDefault(PrisonGame.mny, PersistentDataType.DOUBLE, 0.0)) + "$" + ChatColor.GRAY + " || " + ChatColor.GRAY + "Current Warden: " + wardentime));
+                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GREEN + PrisonGame.formatBalance(Keys.MONEY.get(p, 0.0)) + "$" + ChatColor.GRAY + " || " + ChatColor.GRAY + "Current Warden: " + wardentime));
                 } else {
-                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent((ChatColor.AQUA + whole.format(p.getPersistentDataContainer().getOrDefault(PrisonGame.ascendcoins, PersistentDataType.DOUBLE, 0.0)) + " ascension coins.")));
+                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent((ChatColor.AQUA + whole.format(p.getPersistentDataContainer().getOrDefault(Keys.ASCENSION_COINS.key(), PersistentDataType.DOUBLE, 0.0)) + " ascension coins.")));
                 }
             }
         } else {
@@ -1063,13 +1087,13 @@ public class MyTask extends BukkitRunnable {
                         String acbar = "";
                         if (p.getDisplayName().contains("SOLITARY"))
                             acbar = "||" + ChatColor.DARK_GRAY + " SOLITARY [ " + numberFormat.format(PrisonGame.solittime.get(p) / 20) + " seconds left. ]";
-                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GREEN + numberFormat.format(p.getPersistentDataContainer().getOrDefault(PrisonGame.mny, PersistentDataType.DOUBLE, 0.0)) + "$" + ChatColor.GRAY + acbar + ChatColor.GRAY + " || Current Warden: " + ChatColor.DARK_RED + PrisonGame.warden.getName()));
+                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GREEN + numberFormat.format(p.getPersistentDataContainer().getOrDefault(Keys.MONEY.key(), PersistentDataType.DOUBLE, 0.0)) + "$" + ChatColor.GRAY + acbar + ChatColor.GRAY + " || Current Warden: " + ChatColor.DARK_RED + PrisonGame.warden.getName()));
                     } else {
-                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GREEN + numberFormat.format(p.getPersistentDataContainer().getOrDefault(PrisonGame.mny, PersistentDataType.DOUBLE, 0.0)) + "$" + ChatColor.GRAY + " || " + ChatColor.GRAY + "Current Warden: " + ChatColor.GREEN + "You! Use \"/warden help\"!"));
+                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GREEN + numberFormat.format(p.getPersistentDataContainer().getOrDefault(Keys.MONEY.key(), PersistentDataType.DOUBLE, 0.0)) + "$" + ChatColor.GRAY + " || " + ChatColor.GRAY + "Current Warden: " + ChatColor.GREEN + "You! Use \"/warden help\"!"));
                     }
                 }
                 if (p.getDisplayName().contains("ASCENDING")) {
-                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent((ChatColor.AQUA + "you have " + whole.format(p.getPersistentDataContainer().getOrDefault(PrisonGame.ascendcoins, PersistentDataType.DOUBLE, 0.0)) + " ascension coins.")));
+                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent((ChatColor.AQUA + "you have " + whole.format(p.getPersistentDataContainer().getOrDefault(Keys.ASCENSION_COINS.key(), PersistentDataType.DOUBLE, 0.0)) + " ascension coins.")));
                 }
             }
         }

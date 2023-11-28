@@ -2,6 +2,8 @@ package prisongame.prisongame.listeners;
 
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -12,13 +14,38 @@ import prisongame.prisongame.lib.Role;
 public class PlayerDropItemListener implements Listener {
     @EventHandler
     public void onPlayerDropItem(PlayerDropItemEvent event) {
-        if (PrisonGame.roles.get(event.getPlayer()) != Role.PRISONER) {
-            if (!event.getItemDrop().getItemStack().getType().equals(Material.TRIPWIRE_HOOK)) {
-                event.getPlayer().playSound(event.getPlayer(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                event.getItemDrop().setItemStack(new ItemStack(Material.AIR));
+        var player = event.getPlayer();
+        var drop = event.getItemDrop();
+        var item = drop.getItemStack();
+        var meta = item.getItemMeta();
+        var type = item.getType();
+
+        if (
+                type == Material.BOWL ||
+                type == Material.STONE_BUTTON ||
+                type == Material.WOODEN_SWORD ||
+                type == Material.GLASS_BOTTLE ||
+                type == Material.IRON_SHOVEL ||
+                type == Material.BUCKET ||
+                (meta != null &&
+                        (meta.getDisplayName().contains("Prisoner Uniform") ||
+                         meta.getDisplayName().contains("Prisoner's Pickaxe") ||
+                         meta.getDisplayName().contains("Lumber's Axe") ||
+                         meta.getDisplayName().contains("Shovel") ||
+                         meta.getDisplayName().contains("Plumber"))))
+            pseudoCancel(player, drop);
+
+        if (PrisonGame.roles.get(player) != Role.PRISONER) {
+            if (!type.equals(Material.TRIPWIRE_HOOK)) {
+                pseudoCancel(player, drop);
             } else {
                 event.setCancelled(true);
             }
         }
+    }
+
+    private void pseudoCancel(Player player, Item drop) {
+        player.playSound(player, Sound.ENTITY_VILLAGER_NO, 1, 1);
+        drop.setItemStack(new ItemStack(Material.AIR));
     }
 }

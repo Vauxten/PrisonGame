@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,7 +26,16 @@ public class EntityDamageByEntityListener implements Listener {
     public void onEntityDamageByEntity2(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player) {
             Player a = (Player) event.getDamager();
-            if (a.getInventory().getItemInMainHand().getType().equals(Material.IRON_SHOVEL)) {
+            if (a.getInventory().getHelmet() != null) {
+                if (a.getInventory().getHelmet().getType().equals(Material.YELLOW_WOOL)) {
+                    event.setDamage(0);
+                    if (event.getEntity() instanceof LivingEntity le) {
+                        le.damage(2);
+                    }
+                }
+            }
+            var main = a.getInventory().getItemInMainHand();
+            if (main.getItemMeta().getDisplayName().equals(ChatColor.BLUE + "Handcuffs " + ChatColor.RED + "[CONTRABAND]")) {
                 if (event.getEntity() instanceof Player p) {
                     p.setNoDamageTicks(0);
                 }
@@ -53,7 +63,7 @@ public class EntityDamageByEntityListener implements Listener {
                 event.setCancelled(true);
             }
         }
-        if (MyTask.bossbar.getTitle().equals("ROLL CALL") || MyTask.bossbar.getTitle().equals("EVENING ROLL CALL")) {
+        if (MyTask.bossbar.getTitle().contains("ROLL CALL")) {
             if (event.getEntity() instanceof Player) {
                 Player p = (Player) event.getEntity();
                 if (new Location(p.getWorld(), p.getLocation().getX(), p.getLocation().getY() - 1, p.getLocation().getZ()).getBlock().getType().equals(Material.RED_SAND)) {
